@@ -1,0 +1,2 @@
+# yolov8_deploy
+使用trt将yolov8转化为engine进行检测和分割
