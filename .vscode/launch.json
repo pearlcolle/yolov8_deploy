@@ -1,0 +1,35 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "CUDA GDB Debug (CMake)",
+            "type": "cppdbg",
+            "request": "launch",
+            // 注意：这里指向 CMake 编译出的文件位置
+            "program": "${workspaceFolder}/build/cuda_app",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                { "name": "LD_LIBRARY_PATH", "value": "/usr/local/cuda/lib64:${env:LD_LIBRARY_PATH}" }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set CUDA break on launch",
+                    "text": "set cuda break_on_launch application",
+                    "ignoreFailures": true
+                }
+            ],
+            "miDebuggerPath": "/usr/local/cuda/bin/cuda-gdb",
+            // 调试前自动执行 Build 任务，确保代码是最新的
+            "preLaunchTask": "2. CMake Build"
+        }
+    ]
+}

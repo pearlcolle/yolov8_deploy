@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/usr/local/cuda/include",                       //cuda的头文件库
+                "/usr/include/x86_64-linux-gnu",                //cudnn的头文件库
+                "/home/ubuntu24/下载/TensorRT-8.6.1.6/include",   //trt的头文件库
+                 "/usr/local/cuda-12.5/include",                  
+                 "/home/ubuntu24/minist/src/common",
+                 "/usr/include/opencv4",                       //opencv的头文件库
+                 "${workspaceFolder}/include"                  //自己的头文件
+
+            ],
+            "defines": [],
+            "compilerPath": "/usr/local/cuda/bin/nvcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}

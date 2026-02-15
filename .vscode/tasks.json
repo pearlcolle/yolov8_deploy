@@ -1,0 +1,56 @@
+{
+    "version": "2.0.0",
+    "options": {
+        "cwd": "${workspaceFolder}"
+    },
+    "tasks": [
+        {
+            "label": "生成配置",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-S", "./src",
+                "-B", "build",
+                "-DCMAKE_BUILD_TYPE=Debug"
+            ],
+            "group": "build",
+            "detail": "生成 Makefile 目录 (相当于 mkdir build && cd build && cmake ..)"
+        },
+        {
+            "label": "编译代码",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build", "build",
+                "-j", "4" 
+            ],
+            "group": "build",
+            "dependsOn": ["生成配置"], // 编译前自动执行「生成配置」
+            "problemMatcher": ["$gcc"],
+            "detail": "编译源代码生成可执行文件"
+        },
+        {
+            "label": "执行程序",
+            "type": "shell",
+            "command": "./build/trt_engine",
+            "group": "build",
+            "dependsOn": ["编译代码"], // 执行前自动执行「编译代码」（间接执行「生成配置」）
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "detail": "运行编译好的程序"
+        },
+        {
+            "label": "删除缓存",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-rf",
+                "build"
+            ],
+            "group": "build",
+            "detail": "删除 build 文件夹，清理所有缓存"
+        }
+    ]
+}
