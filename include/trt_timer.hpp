@@ -42,7 +42,12 @@ private:
     cudaEvent_t _gStop;
     float _timeElasped;
     std::vector<std::string> _timeMsgs;
+
+
 };
+
+
+ std::shared_ptr<Timer> creat_timer();
 
 template <typename span>
 void Timer::stop_cpu(std::string msg) {

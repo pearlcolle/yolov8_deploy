@@ -31,7 +31,7 @@ struct AffineMatrix{
     float reverse[6];
     float forward_scale;
     float reverse_scale;
-
+    //参数的准备
     void calc_forward_matrix(TransInfo trans){
         forward[0] = forward_scale;
         forward[1] = 0;
