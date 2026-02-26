@@ -22,11 +22,11 @@ namespace model{
 
             //进行反序列化准备以及分配内存
 
-            m_runtime = shared_ptr<nvinfer1::IRuntime>(nvinfer1::createInferRuntime(*m_logger),destory_ptr<nvinfer1::IRuntime>);
+            m_runtime = shared_ptr<nvinfer1::IRuntime>(nvinfer1::createInferRuntime(*m_logger),destroy_ptr<nvinfer1::IRuntime>);
 
-            m_engine = shared_ptr<nvinfer1::ICudaEngine>(m_runtime->deserializeCudaEngine(data,size),destory_ptr<nvinfer1::ICudaEngine>);
+            m_engine = shared_ptr<nvinfer1::ICudaEngine>(m_runtime->deserializeCudaEngine(data,size),destroy_ptr<nvinfer1::ICudaEngine>);
 
-            m_context = shared_ptr<nvinfer1::IExecutionContext>(m_engine->createExecutionContext(),destory_ptr<nvinfer1::IExecutionContext>);
+            m_context = shared_ptr<nvinfer1::IExecutionContext>(m_engine->createExecutionContext(),destroy_ptr<nvinfer1::IExecutionContext>);
 
             m_inputDims=m_context->getBindingDimensions(0);
             m_outputDims = m_context->getBindingDimensions(1);
@@ -119,7 +119,7 @@ bool Classifier::preprocess_gpu()
     }
 
     m_timer->start_gpu();
-    preprocess::preprocess_resize_gpu(input_image,m_inputMemory[1],m_params.img.h,m_params.img.w,preprocess::tactics::GPU_BILINEAR_CENTER);
+    preprocess::preprocess_resize_gpu(input_image,m_inputMemory[1],m_params.img.h,m_params.img.w,preprocess::tactics::GPU_WARP_AFFINE);//目标检测
     m_timer->stop_gpu("preprocess_gpu");
 
     //直接在gpu中然后进行推理

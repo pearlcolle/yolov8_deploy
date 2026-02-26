@@ -8,13 +8,13 @@ using namespace std;
 int main(int argc, char const *argv[])
 {
     
-    string onnxPath    = "models/onnx/yolov8n.onnx";
+    string onnxPath    = "/home/ubuntu24/yolov8/models/onnx/yolov8n.onnx";
 
     auto level         = logger::Level::VERB;
     auto params        = model::Params();
 
     params.img         = {640, 640, 3};
-    params.tas       = model::task_type::CLASSIFICATION;
+    params.tas       = model::task_type::DETECTION;
     params.dev         = model::device::GPU;
     params.pre        = model::precision::FP16;
 

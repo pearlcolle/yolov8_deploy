@@ -5,7 +5,7 @@
 
 #include "NvInfer.h"
 #include "NvOnnxParser.h"
-#include "trt_calibrator.hpp"
+//#include "trt_calibrator.hpp"
 #include <string>
 
 using namespace std;
@@ -26,6 +26,7 @@ namespace model{
          m_timer =  timer::creat_timer();
          m_params= params;
          m_enginePath    = changePath(onnx_path, "../engine", ".engine", getPrec(m_params.pre));
+         printf("[INFO] 正在寻找 Engine 文件路径: %s\n", m_enginePath.c_str());
     }
 
 
@@ -53,7 +54,7 @@ namespace model{
         {
             if(!fileExists(m_enginePath))
             {
-                LOGE("notfound engine",m_enginePath.c_str());
+                LOG("notfound engine",m_enginePath.c_str());
                 build_engine();
             }
             else
@@ -73,10 +74,10 @@ namespace model{
     bool Model::build_engine()
     {
 
-        auto builder = shared_ptr<nvinfer1::IBuilder>(nvinfer1::createInferBuilder(*m_logger),destory_ptr<IBuilder>);
-        auto network       = shared_ptr<nvinfer1::INetworkDefinition>(builder->createNetworkV2(1), destory_ptr<INetworkDefinition>);
-        auto config        = shared_ptr<nvinfer1::IBuilderConfig>(builder->createBuilderConfig(), destory_ptr<IBuilderConfig>);
-        auto parser        = shared_ptr<nvonnxparser::IParser>(createParser(*network, *m_logger), destory_ptr<IParser>);
+        auto builder = shared_ptr<nvinfer1::IBuilder>(nvinfer1::createInferBuilder(*m_logger),destroy_ptr<IBuilder>);
+        auto network       = shared_ptr<nvinfer1::INetworkDefinition>(builder->createNetworkV2(1),destroy_ptr<INetworkDefinition>);
+        auto config        = shared_ptr<nvinfer1::IBuilderConfig>(builder->createBuilderConfig(), destroy_ptr<IBuilderConfig>);
+        auto parser        = shared_ptr<nvonnxparser::IParser>(createParser(*network, *m_logger), destroy_ptr<IParser>);
 
 
         config->setMaxWorkspaceSize(m_workspaceSize);  
@@ -100,9 +101,9 @@ namespace model{
     }
 
 
-    auto engine        = shared_ptr<ICudaEngine>(builder->buildEngineWithConfig(*network, *config), destory_ptr<ICudaEngine>);
+    auto engine        = shared_ptr<ICudaEngine>(builder->buildEngineWithConfig(*network, *config), destroy_ptr<ICudaEngine>);
     nvinfer1::IHostMemory* plan  = builder->buildSerializedNetwork(*network, *config);
-    auto runtime       = shared_ptr<IRuntime>(createInferRuntime(*m_logger), destory_ptr<IRuntime>);
+    auto runtime       = shared_ptr<IRuntime>(createInferRuntime(*m_logger), destroy_ptr<IRuntime>);
 
 
     save_plan(*plan);

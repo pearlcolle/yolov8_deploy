@@ -65,7 +65,7 @@ __host__ __device__  void affine_transformation(
 
 
         //转化为[RRRRRRRRRRRR],并进行norm
-        tar[tar_idx+tar_area*0] = (src[src_idx+2]/225.0f-d_mean[2])/d_std[2];
+        tar[tar_idx+tar_area*0] = (src[src_idx+2]/255.0f-d_mean[2])/d_std[2];
         tar[tar_idx + tar_area * 1] = (src[src_idx + 1] / 255.0f - d_mean[1]) / d_std[1];
         tar[tar_idx+ tar_area * 2] = (src[src_idx + 0] / 255.0f - d_mean[0]) / d_std[0];
 
@@ -165,7 +165,7 @@ __global__ void bilinear_BGR2RGB_nhwc2nchw_shift_norm_kernel(
     {
 
     //算出间距
-    int tw= (float)(y+0.5)*scaled_h-0.5-src_x1;
+    int tw= (float)(x+0.5)*scaled_w-0.5-src_x1;
     int th =(float)(y+0.5)*scaled_h-0.5 -src_y1;
 
 

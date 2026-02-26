@@ -37,7 +37,7 @@ cv::Mat preprocess_resize_cpu(
     return tar;
 }
 
-// 根据比例进行缩放 (标准化版本)
+// 根据比例进行缩放 (分类版本)
 void preprocess_resize_gpu(
     cv::Mat &h_src, float* d_tar, 
     const int& tar_h, const int& tar_w, 
@@ -77,7 +77,7 @@ void preprocess_resize_gpu(
     // 因为接下来会继续在gpu上进行处理，所以这里不用把结果返回到host
 }
 
-// 根据比例进行缩放 (轻量化版本)
+// 根据比例进行缩放 （检测版本）
 void preprocess_resize_gpu(
     cv::Mat &h_src, float* d_tar, 
     const int& tar_h, const int& tar_w, 

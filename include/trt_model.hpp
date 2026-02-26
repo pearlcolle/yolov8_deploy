@@ -65,7 +65,7 @@ namespace model{
         int num_cls=1000;
         preprocess::tactics tac =preprocess::tactics::GPU_WARP_AFFINE;
         task_type tas = DETECTION;
-        image_info img = {224,224,3};
+        image_info img = {224,224,3};  //已经预处理好的大小
         int  ws_size  = WORKSPACESIZE;
     };
 
@@ -73,13 +73,13 @@ namespace model{
 
     //创建一个模板
     template<class T>
-    void destory_ptr(T*ptr)
+    void destroy_ptr(T*ptr)
     {
         if(ptr)
         {
-            std::string ptr_type = typeid(T).name;
-            LOGD("destory %s",ptr_type.c_str());
-            ptr->destory();
+            std::string ptr_type = typeid(T).name();
+            LOGD("destroy %s",ptr_type.c_str());
+            ptr->destroy();
         };
     }
 
@@ -92,7 +92,7 @@ namespace model{
 
         public:
         Model(std::string onnx_path,logger::Level level,Params params);//构造函数接受onnx路径，打印的水平，以及基本参数来进行初始化
-        virtual ~Model();
+        virtual ~Model() =default;
 
         //我们总共需要这几部 加载图片，判断model状态（有engine直接用，没engine就是需要build），推理
         void load_image(std::string image_path);
