@@ -28,8 +28,8 @@ namespace model{
             auto interx1 = std::min(bbox1.x1,bbox2.x1);
             auto intery1 = std::min(bbox1.y1,bbox2.y1);
 
-            float interw = interx1-interx0;
-            float interh = intery1-intery0;
+            float interw = std::max( 0.0f,interx1-interx0);
+            float interh = std::max( 0.0f,intery1-intery0); //防止为负
 
             float inter = interw*interh;
 
@@ -45,9 +45,9 @@ namespace model{
 
             //setup是用来生成engine反序列化，分配空间的作用
 
-            m_runtime = shared_ptr<nvinfer1::IRuntime>(nvinfer1::createInferRuntime(*m_logger));
-            m_engine = shared_ptr<nvinfer1::ICudaEngine>(m_runtime->deserializeCudaEngine(data,size));
-            m_context = shared_ptr<nvinfer1::IExecutionContext>(m_engine->createExecutionContext());
+            m_runtime = shared_ptr<nvinfer1::IRuntime>(nvinfer1::createInferRuntime(*m_logger),destroy_ptr<IRuntime>);
+            m_engine = shared_ptr<nvinfer1::ICudaEngine>(m_runtime->deserializeCudaEngine(data,size),destroy_ptr<ICudaEngine>);
+            m_context = shared_ptr<nvinfer1::IExecutionContext>(m_engine->createExecutionContext(),destroy_ptr<IExecutionContext>);
 
 
             m_inputDims = m_context->getBindingDimensions(0);
@@ -159,7 +159,7 @@ namespace model{
 
 
 
-    bool Detector::preprocess_gpu() {
+bool Detector::preprocess_gpu() {
 
     /*Preprocess -- 读取数据*/
     m_inputImage = cv::imread(m_imagePath);
@@ -167,10 +167,8 @@ namespace model{
         LOGE("ERROR: file not founded! Program terminated"); return false;
     }
     
-    /*Preprocess -- 测速*/
     m_timer->start_gpu();
 
-    /*Preprocess -- 使用GPU进行warpAffine, 并将结果返回到m_inputMemory中*/
     preprocess::preprocess_resize_gpu(m_inputImage, m_inputMemory[1],
                                    m_params.img.h, m_params.img.w, 
                                    preprocess::tactics::GPU_WARP_AFFINE);
@@ -178,94 +176,164 @@ namespace model{
     return true;
 }
 
+bool Detector::postprocess_cpu()
+{
 
+
+    m_timer->start_cpu();
+
+    //推理完了，我要把数据放回cpu中进行后处理
+    CUDA_CHECK(cudaMemcpyAsync(m_outputMemory[0],m_outputMemory[1],m_outputSize,cudaMemcpyKind::cudaMemcpyDeviceToHost,m_stream));
+    CUDA_CHECK(cudaStreamSynchronize(m_stream));
+
+
+
+      /*Postprocess -- 1. decode*/
+    /*
+     * 我们需要做的就是将[batch, bboxes, ch]转换为vector<bbox>
+     * 几个步骤:
+     * 1. 从每一个bbox中对应的ch中获取cx, cy, width, height
+     * 2. 对每一个bbox中对应的ch中，找到最大的class label, 可以使用std::max_element
+     * 3. 将cx, cy, width, height转换为x0, y0, x1, y1
+     * 4. 因为图像是经过resize了的，所以需要根据resize的scale和shift进行坐标的转换(这里面可以根据preprocess中的到的affine matrix来进行逆变换)
+     * 5. 将转换好的x0, y0, x1, y1，以及confidence和classness给存入到box中，并push到m_bboxes中，准备接下来的NMS处理
+     */
+    //outputdim(1,8400,84)
+
+    float conf_threshold = 0.25; //用来过滤decode时的bboxes
+    float nms_threshold  = 0.45;  //用来过滤nms时的bboxes
+
+
+    int    boxes_count = m_outputDims.d[1];//8400
+    int    class_count = m_outputDims.d[2] - 4;//84-40
+    float* tensor;
+
+    float  cx, cy, w, h, obj, prob, conf;  //中心点，宽高，物体（0，1），概率，置信度
+    float  x0, y0, x1, y1; //框的4个点
+    int    label; //标签索引
+
+
+    //遍历每个8400个框去解码
+    for(int i=0;i<boxes_count;i++)
+    {
+        tensor = m_outputMemory[0]+i*m_outputDims.d[2];//每次循环都是下一个框
+        label = max_element(tensor+4,tensor+4+class_count)-(tensor+4);
+
+        conf =tensor[label+4];
+
+        if(conf<conf_threshold)
+        {
+            continue;
+        }
+        cx =tensor[0];
+        cy =tensor[1];
+        w = tensor[2];
+        h = tensor[3];
+
+        x0 = cx-w/2;
+        y0 =cy-h/2;
+        x1 = x0+w;
+        y1 = y0+h;
+
+
+        //由于图片已经resize了，我们需要把框的坐标还原到原图上，所以要进行affine_matrix;
+
+        preprocess::affine_transformation(preprocess::affine_matrix.reverse,x0,y0,&x0,&y0);
+        preprocess::affine_transformation(preprocess::affine_matrix.reverse,x1,y1,&x1,&y1);
+        //此时框的坐标已经确定，现在给他放到bbox的vecrtor中
+
+        bbox bboxx(x0,y0,x1,y1,conf,label);
+        m_bboxes.emplace_back(bboxx);
+    }
+
+      LOGD("the count of decoded bbox is %d", m_bboxes.size()); //打印出第一次过滤后的box的数量
+
+
+
+      //先对m_box进行排列，根据置信度
+
+      std::vector<bbox> final_bbox;
+      final_bbox.reserve(m_bboxes.size());
+      sort(m_bboxes.begin(),m_bboxes.end(),[](bbox &bbox1,bbox &bbox2){return bbox1.confidence>bbox2.confidence;});
+
+
+      //第一个最大的框
+      for(int i=0;i<m_bboxes.size();i++)
+      {
+        if(m_bboxes[i].flg_remove)
+        {
+            continue;
+        }
+        final_bbox.emplace_back(m_bboxes[i]);
+
+        //第二个最大的框
+        for(int j=i+1;j<m_bboxes.size();j++)
+        {
+            if(m_bboxes[j].flg_remove)
+            {
+                continue;
+            }
+
+
+            float iou = iou_calc(m_bboxes[i],m_bboxes[j]);
+            if(iou>nms_threshold)
+            {
+                m_bboxes[j].flg_remove=true;
+            }
+
+        }
+      }
+      LOGD("the count of bbox after NMS is %d", final_bbox.size());
+
+
+
+      //draw boxes
+
+      CocoLabels labels;
+      for (int i = 0; i < final_bbox.size(); i++) {
+          auto box = final_bbox[i];
+
+          string name = labels.coco_get_label(box.label);
+          string txt = cv::format("%s: %.2f", name.c_str(), box.confidence);
+
+           cv::Point pt1(box.x0, box.y0); // 左上角
+           cv::Point pt2(box.x1, box.y1); // 右下角
+
+   
+           cv::rectangle(m_inputImage, pt1, pt2, cv::Scalar(0, 255, 0), 2);
+
+           cv::Point txt_pos(box.x0, box.y0 - 5); 
+           cv::putText(m_inputImage, txt, txt_pos, cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1);
+        
+        }
+        static int image_counter = 0; 
+        std::string save_path = "/home/ubuntu24/yolov8/data/results/result_" + std::to_string(image_counter++) + ".png";
     
+        cv::imwrite(save_path, m_inputImage);
+        m_timer->stop_cpu<timer::Timer::ms>("postprocess(CPU)"); 
+        m_timer->show();                              
+        printf("\n");
 
+        return true;
 
+}
 
+bool Detector::postprocess_gpu()
+{
+    m_timer->start_gpu();
+    Detector::postprocess_cpu();
+    m_timer->stop_gpu();
 
+    return true;
+}
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+std::shared_ptr<Detector> make_detector(std::string onnx_path, logger::Level level, Params params)
+{
+    return make_shared<Detector>(onnx_path, level, params);
+}
 
     } //detector
 

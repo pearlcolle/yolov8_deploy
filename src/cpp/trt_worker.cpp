@@ -1,6 +1,6 @@
 #include "trt_worker.hpp"
 #include "trt_classifier.hpp"
-//#include "trt_detector.hpp"
+#include "trt_detector.hpp"
 #include "trt_logger.hpp"
 #include "memory"
 
@@ -20,8 +20,8 @@ namespace thread{
         {
             m_classifier = model::classifier::make_classifier(onnxPath,level,params);
         }
-        // else if (params.task == model::task_type::DETECTION) 
-        // m_detector = model::detector::make_detector(onnxPath, level, params);
+        else if (params.tas == model::task_type::DETECTION) 
+         m_detector = model::detector::make_detector(onnxPath, level, params);
 
     }
 
@@ -33,11 +33,11 @@ void Worker::do_inference(string imagePath) {
         //调用的都是model的函数
     }
 
-    // if (m_detector != nullptr) {
-    //     m_detector->init_model();
-    //     m_detector->load_image(imagePath);
-    //     m_detector->inference();
-    // }
+    if (m_detector != nullptr) {
+         m_detector->init_model();
+         m_detector->load_image(imagePath);
+        m_detector->inference();
+     }
 }
 
 

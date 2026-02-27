@@ -6,7 +6,7 @@
 #include "trt_model.hpp"
 #include "trt_logger.hpp"
 #include "trt_classifier.hpp"
-//#include "trt_detector.hpp"
+#include "trt_detector.hpp"
 
 
 
@@ -26,9 +26,9 @@ namespace thread{
 
 
         std::shared_ptr<model::classifier::Classifier>  m_classifier;//创建的成员对象去接受classifier中make_classifier返回的对象
-        //std::shared_ptr<model::detector::Detector>      m_detector;
+        std::shared_ptr<model::detector::Detector>      m_detector;
         std::vector<float>                              m_scores;
-        //std::vector<model::detector::bbox>              m_boxes;
+        std::vector<model::detector::bbox>              m_boxes;
 
 
         };

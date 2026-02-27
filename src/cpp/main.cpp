@@ -27,6 +27,9 @@ int main(int argc, char const *argv[])
     worker->do_inference("data/source/crossroad.jpg");
     worker->do_inference("data/source/airport.jpg");
     worker->do_inference("data/source/bedroom.jpg");
+    worker->do_inference("data/source/aaa.jpg");
+    worker->do_inference("data/source/bbb.jpg");
+    worker->do_inference("data/source/ccc.jpg");
 
     return 0;
 }

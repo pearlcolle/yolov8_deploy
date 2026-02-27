@@ -30,6 +30,7 @@ link_directories(
 set(SOURCES
     cpp/main.cpp
     cpp/trt_classifier.cpp
+    cpp/trt_detector.cpp
     cpp/trt_logger.cpp
     cpp/trt_model.cpp
     cpp/trt_preprocess.cpp

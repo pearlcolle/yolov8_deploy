@@ -1,0 +1,3 @@
+/home/ubuntu24/yolov8/build/CMakeFiles/trt_engine.dir
+/home/ubuntu24/yolov8/build/CMakeFiles/edit_cache.dir
+/home/ubuntu24/yolov8/build/CMakeFiles/rebuild_cache.dir
